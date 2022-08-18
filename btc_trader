@@ -1,0 +1,93 @@
+import time
+from selenium import webdriver
+#from webdriver_manager.chrome import ChromeDriverManager
+
+#driver = webdriver.Chrome(ChromeDriverManager().install())
+driver = webdriver.Safari()
+driver.get("https://www.dailyfx.com/bitcoin")
+
+wallet = float(input("How much would you like to invest: "))
+tradingAmount = wallet # Money currently being traded
+initAmount = wallet
+
+time.sleep(5)
+
+btc = driver.find_element_by_xpath('//*[@id="dfx-instrumentPageBar-BITCOIN"]/div[1]/div/div[1]/div[2]/div[1]')
+startPrice = float(btc.get_attribute('data-value'))
+btcPurchased = wallet/startPrice # Buying btc
+startUserPrice = btcPurchased*startPrice
+ogPrice = startUserPrice # Baseline Amount above which trading takes place, when price keeps dropping baseline is reduced as well
+print(startUserPrice)
+
+
+while True:
+
+    #startUserPrice - Price in the previous iteration
+    #currentUserPrice - Price in the current iteration
+
+    currentPrice = float(btc.get_attribute('data-value'))
+    currentUserPrice = btcPurchased*currentPrice
+
+    if currentUserPrice != startUserPrice:
+
+        print("Current Rate: ", currentPrice)
+        print("Current Price: ", currentUserPrice)
+        print("Price Change: ", currentUserPrice-startUserPrice)
+        print("OG Price: ", ogPrice)
+
+        if currentUserPrice > ogPrice:
+            if currentUserPrice > startUserPrice:
+                income = btcPurchased*currentPrice #Checking current withdraw amount
+                wallet += (income-tradingAmount) #Adding profit to wallet
+                btcPurchased = tradingAmount / currentPrice #Buying btc at current price with initial amount
+                startUserPrice = btcPurchased * currentPrice
+                print("Wallet: ", wallet)
+                print("Money in play: ", tradingAmount)
+                if wallet > income:
+                    tradingAmount = initAmount
+                continue
+
+        elif currentUserPrice < ogPrice:
+
+            if currentUserPrice < startUserPrice:
+
+                now = time.time()
+                future = now + 10
+
+                while True:
+
+                    currentPrice = float(btc.get_attribute('data-value'))
+                    currentUserPrice = btcPurchased * currentPrice
+
+                    if currentUserPrice > startUserPrice:
+                        if currentUserPrice > ogPrice:
+                            break
+
+                    if time.time() > future:
+                        print("Entered OG Lowering")
+                        income = btcPurchased * currentPrice
+                        wallet += (income-tradingAmount)
+                        print("Wallet: ", wallet)
+                        btcPurchased = tradingAmount / startPrice
+                        startUserPrice = btcPurchased * currentPrice
+                        ogPrice = currentUserPrice
+                        if wallet < tradingAmount:  # Reducing trading amount if money is getting lost
+                            tradingAmount = income
+                        print("Money in play: ", tradingAmount)
+                        break
+
+                    startUserPrice = currentUserPrice
+                else:
+                    continue
+
+
+
+
+        startUserPrice = currentUserPrice
+
+
+
+
+
+
+
